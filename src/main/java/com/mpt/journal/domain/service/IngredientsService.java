@@ -1,40 +1,41 @@
 package com.mpt.journal.domain.service;
 
-import com.mpt.journal.domain.entity.Measure;
-import com.mpt.journal.domain.model.IngredientModel;
+import com.mpt.journal.domain.entity.IngredientEntity;
+import com.mpt.journal.domain.model.Measure;
 import com.mpt.journal.domain.model.PagedResult;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface IngredientsService {
-    PagedResult<IngredientModel> getIngredientsList(
+    PagedResult<IngredientEntity> getIngredientsList(
             int page,
             int pageSize,
             String name,
             Measure measure,
-            Boolean shoeDeleted
+            Boolean showDeleted
     );
 
-    PagedResult<IngredientModel> getIngredientsByRecipe(
+    PagedResult<IngredientEntity> getIngredientsByRecipe(
             int page,
             int pageSize,
             String recipe_ID,
             String name,
             Measure measure,
-            Boolean shoeDeleted
+            Boolean showDeleted
     );
 
-    IngredientModel getIngredientByID(String ingredientID);
+    IngredientEntity getIngredientByID(UUID ingredientID);
 
-    IngredientModel addIngredient(IngredientModel ingredient);
+    IngredientEntity addIngredient(IngredientEntity ingredient);
 
-    IngredientModel editIngredient(IngredientModel ingredient);
+    IngredientEntity editIngredient(IngredientEntity ingredient);
 
-    void deleteIngredient(String ingredientID);
+    void deleteIngredient(UUID ingredientID);
 
-    void deleteIngredients(List<String> ingredientIDs);
+    void deleteIngredients(List<UUID> ingredientIDs);
 
-    void confirmDeleteIngredient(String ingredientID);
+    void confirmDeleteIngredient(UUID ingredientID);
 
-    void confirmDeleteIngredients(List<String> ingredientIDs);
+    void confirmDeleteIngredients(List<UUID> ingredientIDs);
 }

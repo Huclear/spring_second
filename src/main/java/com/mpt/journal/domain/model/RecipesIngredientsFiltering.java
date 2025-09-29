@@ -1,7 +1,5 @@
 package com.mpt.journal.domain.model;
 
-import com.mpt.journal.domain.entity.Measure;
-
 public class RecipesIngredientsFiltering {
     private String ingredientName;
     private Measure currentMeasure;

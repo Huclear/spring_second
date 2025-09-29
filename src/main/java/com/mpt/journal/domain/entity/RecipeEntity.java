@@ -1,31 +1,55 @@
 package com.mpt.journal.domain.entity;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
+import java.util.Collection;
 import java.util.UUID;
 
+@Entity(name = "recipes")
 public class RecipeEntity {
-    private final String id;
-    private final String user_ID;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @ManyToOne(optional = false, cascade = CascadeType.ALL)
+    private UserEntity user;
+
+    @NotBlank
+    @Pattern(regexp = "^[A-Za-z0-9 ]{5,}")
     private String recipe_name;
+
     private String recipe_description;
+
+    @NotNull
     private Boolean deleted = false;
 
-    public RecipeEntity(String id, String user_ID, String name, String description) {
-        this.id = id;
-        this.user_ID = user_ID;
-        recipe_name = name;
-        recipe_description = description;
-    }
+    @ManyToMany
+    @JoinTable(name = "recipes_filters",
+            inverseJoinColumns = @JoinColumn(name = "filter_id"),
+            joinColumns = @JoinColumn(name = "recipe_id"))
+    private Collection<FilterEntity> filters;
 
-    public RecipeEntity(String user_ID, String name, String description) {
-        this(UUID.randomUUID().toString(), user_ID, name, description);
-    }
+    @OneToMany(mappedBy = "recipe", fetch = FetchType.EAGER)
+    private Collection<IngredientEntity> ingredients;
 
-    public String getId() {
+    public UUID getId() {
         return id;
     }
 
-    public String getUser_ID() {
-        return user_ID;
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public UserEntity getUser() {
+        return user;
+    }
+
+    public void setUser(UserEntity user) {
+        this.user = user;
     }
 
     public String getRecipe_name() {
@@ -51,4 +75,21 @@ public class RecipeEntity {
     public void setDeleted(Boolean deleted) {
         this.deleted = deleted;
     }
+
+    public Collection<FilterEntity> getFilters() {
+        return filters;
+    }
+
+    public void setFilters(Collection<FilterEntity> filters) {
+        this.filters = filters;
+    }
+
+    public Collection<IngredientEntity> getIngredients() {
+        return ingredients;
+    }
+
+    public void setIngredients(Collection<IngredientEntity> ingredients) {
+        this.ingredients = ingredients;
+    }
 }
+

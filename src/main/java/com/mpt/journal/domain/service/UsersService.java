@@ -1,13 +1,14 @@
 package com.mpt.journal.domain.service;
 
 
+import com.mpt.journal.domain.entity.UserEntity;
 import com.mpt.journal.domain.model.PagedResult;
-import com.mpt.journal.domain.model.UserModel;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface UsersService {
-    PagedResult<UserModel> getUsers(
+    PagedResult<UserEntity> getUsers(
             int page,
             int pageSize,
             String nickName,
@@ -16,19 +17,19 @@ public interface UsersService {
             Boolean showDeleted
     );
 
-    UserModel getUserByLogin(String login);
+    UserEntity getUserByLogin(String login);
 
-    UserModel getUserById(String userID);
+    UserEntity getUserById(UUID userID);
 
-    UserModel addUser(UserModel user);
+    UserEntity addUser(UserEntity user);
 
-    UserModel editUser(UserModel user);
+    UserEntity editUser(UserEntity user);
 
-    void deleteUser(String userID);
+    void deleteUser(UUID userID);
 
-    void deleteUsers(List<String> userIDs);
+    void deleteUsers(List<UUID> userIDs);
 
-    void confirmDeleteUser(String userID);
+    void confirmDeleteUser(UUID userID);
 
-    void confirmDeleteUsers(List<String> userIDs);
+    void confirmDeleteUsers(List<UUID> userIDs);
 }

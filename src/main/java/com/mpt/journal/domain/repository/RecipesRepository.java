@@ -2,25 +2,12 @@ package com.mpt.journal.domain.repository;
 
 
 import com.mpt.journal.domain.entity.RecipeEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.UUID;
 
-public interface RecipesRepository {
-    List<RecipeEntity> getRecipes();
-
-    List<RecipeEntity> getRecipesByUser(String userID);
-
-    RecipeEntity getRecipeById(String recipeID);
-
-    RecipeEntity addRecipe(RecipeEntity recipe);
-
-    RecipeEntity editRecipe(RecipeEntity recipe);
-
-    void deleteRecipe(String recipeID);
-
-    void deleteRecipes(List<String> recipeIDs);
-
-    void confirmDeleteRecipe(String recipeID);
-
-    void confirmDeleteRecipes(List<String> recipeIDs);
+@Repository
+public interface RecipesRepository extends JpaRepository<RecipeEntity, UUID> {
 }

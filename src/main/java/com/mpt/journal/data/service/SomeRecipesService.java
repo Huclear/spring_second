@@ -1,154 +1,149 @@
 package com.mpt.journal.data.service;
 
 import com.mpt.journal.data.Paginator;
+import com.mpt.journal.domain.entity.FilterEntity;
 import com.mpt.journal.domain.entity.IngredientEntity;
 import com.mpt.journal.domain.entity.RecipeEntity;
-import com.mpt.journal.domain.model.IngredientModel;
 import com.mpt.journal.domain.model.PagedResult;
-import com.mpt.journal.domain.model.RecipeModel;
 import com.mpt.journal.domain.model.RecipesIngredientsFiltering;
+import com.mpt.journal.domain.repository.FilterRepository;
 import com.mpt.journal.domain.repository.IngredientsRepository;
 import com.mpt.journal.domain.repository.RecipesRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class SomeRecipesService implements com.mpt.journal.domain.service.RecipesService {
     private final RecipesRepository _recipes;
     private final IngredientsRepository _ingredients;
+    private final FilterRepository _filters;
 
-    public SomeRecipesService(RecipesRepository recipes, IngredientsRepository ingredients) {
+    public SomeRecipesService(RecipesRepository recipes, IngredientsRepository ingredients, FilterRepository filters) {
         this._recipes = recipes;
         this._ingredients = ingredients;
+        this._filters = filters;
     }
 
 
     @Override
-    public PagedResult<RecipeModel> getRecipes(
+    public PagedResult<RecipeEntity> getRecipes(
             int page,
             int pageSize,
-            String name, List<RecipesIngredientsFiltering> ingredients,
-            Boolean showDeleted) {
-        var recipesByName = _recipes.getRecipes().stream().filter(r ->
-                r.getDeleted() == (showDeleted == null ? false : showDeleted) &&
-                        (name == null ||
-                                r.getRecipe_name().toLowerCase().contains(name.toLowerCase()))
-        ).toList();
-
-        if (ingredients == null || ingredients.isEmpty()) {
-            return Paginator.paginate(recipesByName, page, pageSize)
-                    .map(this::getModelForRecipe);
-        }
-
-        var response = recipesByName
-                .stream().filter(r -> {
-                            var ings = _ingredients.getIngredientByRecipe(r.getId(), null, null);
-                            return ingredients.stream().allMatch(ingF ->
-                                    ings.stream().anyMatch(ing ->
-                                            ing.getName().equals(ingF.getIngredientName())
-                                                    && (ingF.getCurrentMeasure() == null || ingF.getCurrentMeasure().equals(ing.getMeasureType()))
-                                                    && ing.getAmount() >= ingF.getAmountFrom() && ing.getAmount() <= ingF.getAmountTo()
-                                    ));
-                        }
-                )
-                .toList();
-
-        return Paginator.paginate(response, page, pageSize)
-                .map(this::getModelForRecipe);
-    }
-
-    @Override
-    public PagedResult<RecipeModel> getRecipesByUser(
-            int page,
-            int pageSize,
-            String userID,
             String name,
             List<RecipesIngredientsFiltering> ingredients,
+            List<FilterEntity> filters,
             Boolean showDeleted) {
-        var recipesByName = _recipes.getRecipesByUser(userID).stream().filter(r ->
+        var recipesByName = _recipes.findAll().stream().filter(r ->
+
                 r.getDeleted() == (showDeleted == null ? false : showDeleted) &&
                         (name == null ||
                                 r.getRecipe_name().toLowerCase().contains(name.toLowerCase()))
         ).toList();
 
-        if (ingredients == null || ingredients.isEmpty()) {
-            return Paginator.paginate(recipesByName, page, pageSize)
-                    .map(this::getModelForRecipe);
+        if ((ingredients == null || ingredients.isEmpty()) && (filters == null || filters.isEmpty())) {
+            return Paginator.paginate(recipesByName, page, pageSize);
         }
 
-        var response = recipesByName
-                .stream().filter(r -> {
-                            var ings = _ingredients.getIngredientByRecipe(r.getId(), null, null);
-                            return ingredients.stream().allMatch(ingF ->
-                                    ings.stream().anyMatch(ing ->
-                                            ing.getName().equals(ingF.getIngredientName())
-                                                    && (ingF.getCurrentMeasure() == null || ingF.getCurrentMeasure().equals(ing.getMeasureType()))
-                                                    && ing.getAmount() >= ingF.getAmountFrom() && ing.getAmount() <= ingF.getAmountTo()
-                                    ));
-                        }
-                )
-                .toList();
+        if (ingredients != null && !ingredients.isEmpty())
+            recipesByName = recipesByName
+                    .stream().filter(r -> ingredients.stream().allMatch(ingF ->
+                            r.getIngredients().stream().anyMatch(ing ->
+                                    ing.getName().equals(ingF.getIngredientName())
+                                            && (ingF.getCurrentMeasure() == null || ingF.getCurrentMeasure().equals(ing.getMeasureType()))
+                                            && ing.getAmount() >= ingF.getAmountFrom() && ing.getAmount() <= ingF.getAmountTo()
+                            ))
+                    )
+                    .toList();
 
-        return Paginator.paginate(response, page, pageSize)
-                .map(this::getModelForRecipe);
+        if (filters != null && !filters.isEmpty())
+            recipesByName = recipesByName
+                    .stream().filter(r -> r.getFilters().containsAll(filters))
+                    .toList();
+
+        return Paginator.paginate(recipesByName, page, pageSize);
     }
 
     @Override
-    public RecipeModel getRecipeById(String recipeID) {
-        return getModelForRecipe(_recipes.getRecipeById(recipeID));
+    public PagedResult<RecipeEntity> getRecipesByUser(
+            int page,
+            int pageSize,
+            UUID userID,
+            String name,
+            List<RecipesIngredientsFiltering> ingredients,
+            List<FilterEntity> filters,
+            Boolean showDeleted) {
+        var recipesByName = _recipes.findAll().stream().filter(r ->
+                r.getUser().getId() == userID &&
+                        r.getDeleted() == (showDeleted == null ? false : showDeleted) &&
+                        (name == null ||
+                                r.getRecipe_name().toLowerCase().contains(name.toLowerCase()))
+        ).toList();
+
+        if ((ingredients == null || ingredients.isEmpty()) && (filters == null || filters.isEmpty())) {
+            return Paginator.paginate(recipesByName, page, pageSize);
+        }
+
+        if (ingredients != null && !ingredients.isEmpty())
+            recipesByName = recipesByName
+                    .stream().filter(r -> ingredients.stream().allMatch(ingF ->
+                            r.getIngredients().stream().anyMatch(ing ->
+                                    ing.getName().equals(ingF.getIngredientName())
+                                            && (ingF.getCurrentMeasure() == null || ingF.getCurrentMeasure().equals(ing.getMeasureType()))
+                                            && ing.getAmount() >= ingF.getAmountFrom() && ing.getAmount() <= ingF.getAmountTo()
+                            ))
+                    )
+                    .toList();
+
+        if (filters != null && !filters.isEmpty())
+            recipesByName = recipesByName
+                    .stream().filter(r -> r.getFilters().containsAll(filters))
+                    .toList();
+
+        return Paginator.paginate(recipesByName, page, pageSize);
     }
 
     @Override
-    public RecipeModel addRecipe(RecipeModel recipe) {
-        return getModelForRecipe(_recipes.addRecipe(convertModelToEntity(recipe)));
+    public RecipeEntity getRecipeById(UUID recipeID) {
+        return _recipes.findById(recipeID).orElse(null);
     }
 
     @Override
-    public RecipeModel editRecipe(RecipeModel recipe) {
-        return getModelForRecipe(_recipes.editRecipe(convertModelToEntity(recipe)));
+    public RecipeEntity addRecipe(RecipeEntity recipe) {
+        return _recipes.save(recipe);
     }
 
     @Override
-    public void deleteRecipe(String recipeID) {
-        _recipes.deleteRecipe(recipeID);
+    public RecipeEntity editRecipe(RecipeEntity recipe) {
+        return _recipes.save(recipe);
     }
 
     @Override
-    public void deleteRecipes(List<String> recipeIDs) {
-        _recipes.deleteRecipes(recipeIDs);
+    public void deleteRecipe(UUID recipeID) {
+        var recipe = _recipes.findById(recipeID).orElse(null);
+        if (recipe == null)
+            return;
+        if (recipe.getDeleted())
+            confirmDeleteRecipe(recipeID);
+        else {
+            recipe.setDeleted(true);
+            _recipes.save(recipe);
+        }
     }
 
     @Override
-    public void confirmDeleteRecipe(String recipeID) {
-        _recipes.confirmDeleteRecipe(recipeID);
+    public void deleteRecipes(List<UUID> recipeIDs) {
+        recipeIDs.forEach(this::deleteRecipe);
     }
 
     @Override
-    public void confirmDeleteRecipes(List<String> recipeIDs) {
-        _recipes.confirmDeleteRecipes(recipeIDs);
+    public void confirmDeleteRecipe(UUID recipeID) {
+        _recipes.deleteById(recipeID);
     }
 
-    private RecipeModel getModelForRecipe(RecipeEntity entity) {
-        if (entity == null)
-            return null;
-        List<IngredientEntity> ings = _ingredients.getIngredientByRecipe(entity.getId(), null, null);
-        return new RecipeModel(
-                entity.getId(),
-                entity.getUser_ID(),
-                entity.getRecipe_name(),
-                entity.getRecipe_description(),
-                ings
-        );
-    }
-
-    private RecipeEntity convertModelToEntity(RecipeModel model) {
-        return new RecipeEntity(
-                model.getId(),
-                model.getUser_ID(),
-                model.getRecipe_name(),
-                model.getRecipe_description()
-        );
+    @Override
+    public void confirmDeleteRecipes(List<UUID> recipeIDs) {
+        recipeIDs.forEach(this::confirmDeleteRecipe);
     }
 }

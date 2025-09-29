@@ -6,19 +6,8 @@
 </head>
 <body>
 <h1>Recipes list</h1>
-<form action="/recipes/add" method="post">
-    <input type="text" name="name" placeholder="Название" required>
-    <input type="text" name="description" placeholder="Описание" required>
-    <select name="user_id">
-        <option th:each="user : ${allowedUsers}"
-                th:value="${user.id}"
-                th:text="${user.nickname}"></option>
-
-    </select>
-    <button type="submit">Add recipe</button>
+<a th:href="@{/recipes/add}">Create recipe</a>
 </form>
-
-<h2>Recipes:</h2>
 <form action="/recipes" method="get">
     <label>
         Name:
@@ -41,15 +30,23 @@
         Show deleted:
         <input type="checkbox" name="show_deleted" value="true">
     </label>
+
+    <select th:value="${applied_filters}" name="filters" multiple="multiple">
+        <option th:each="filter : ${filters}"
+                th:value="${filter.name.en} ?: ${filter.name.ru}"
+                th:text="'Name(en) - ' + ${filter.name.en} + '; Name(ru) - ' + ${filter.name.ru}"></option>
+
+    </select>
     <button type="submit">Search</button>
 </form>
 <br>
-<form action="/recipes/addIngrFilter" method="post">
+<form action="#" th:action="@{/recipes/addIngrFilter}" method="post" th:object="${ingr_filter_model}">
     <label>
         Ingredient name:
-        <input name="ingredientName" type="text">
+        <input th:field="*{ingredientName}" type="text">
     </label>
-    <select name="measure">
+
+    <select th:field="*{currentMeasure}">
         <option th:each="option : ${measures}"
                 th:value="${option}"
                 th:text="${option.displayName}"></option>
@@ -57,11 +54,11 @@
     </select>
     <label>
         Amount from:
-        <input name="amountFrom" type="number">
+        <input th:field="*{amountFrom}" type="number">
     </label>
     <label>
         Amount to:
-        <input name="amountTo" type="number">
+        <input th:field="*{amountTo}" type="number">
     </label>
     <button type="submit">Add filter</button>
     <br>
@@ -77,27 +74,21 @@
         </li>
     </th:block>
 </ul>
+
+<h2>Recipes:</h2>
 <br>
 <br>
 <th:block th:each="recipe : ${recipes.value}">
     <li>
-        <span th:text="'Name: ' + ${recipe.recipe_name} + ' Description: ' + ${recipe.recipe_description} + ' User id: ' + ${recipe.user_ID}"></span>
-        <form action="/recipes/edit" method="post" style="display:inline;">
-            <input type="hidden" name="id" th:value="${recipe.id}">
-            <input type="text" th:value="${recipe.recipe_name}" name="name" placeholder="Название" required>
-            <input type="text" th:value="${recipe.recipe_description}" name="description" placeholder="Описание" required>
-            <select name="user_id" th:value="${recipe.user_ID}">
-                <option th:each="user : ${allowedUsers}"
-                        th:value="${user.id}"
-                        th:text="${user.nickname}"></option>
-
-            </select>
-            <button type="submit">Обновить</button>
+        <span th:text="'Name: ' + ${recipe.recipe_name}"></span>
+        <span th:text="'Description: ' + ${recipe.recipe_description}"></span>
+        <a th:href="@{/recipes/edit/{id}(id=${recipe.id})}">Edit recipe</a>
+        <a th:href="@{/recipes/delete/{id}(id=${recipe.id})}" onclick="return confirm('Вы уверены, что хотите удалить?');">Delete recipe</a>
+        <form method="get" action="/ingredients">
+            <input type="hidden" name="recipe_id" th:value="${recipe.id}">
+            <input type="submit" value="Go to recipe`s ingredients config">
         </form>
-        <form action="/recipes/delete" method="post" style="display:inline;">
-            <input type="hidden" name="id" th:value="${recipe.id}"/>
-            <button type="submit">Удалить</button>
-        </form>
+        <span>Ingredients</span>
         <ul>
             <th:block th:each="ingredient, status : ${recipe.ingredients}">
                 <li>
@@ -105,10 +96,15 @@
                     <span th:text="'Amount: ' + ${ingredient.amount} + ${ingredient.measureType.displayName}"/>
                 </li>
             </th:block>
-            <form method="get" action="/ingredients">
-                <input type="hidden" name="recipe_id" th:value="${recipe.id}">
-                <input type="submit" value="Go to recipe`s ingredients config">
-            </form>
+        </ul>
+
+        <span>Filters</span>
+        <ul>
+            <th:block th:each="filter : ${recipe.filters}">
+                <li>
+                    <span th:text="'Name(en) - ' + ${filter.name.en} + '; Name(ru) - ' + ${filter.name.ru} + ' (Deleted-' + ${filter.deleted} + ')'"/>
+                </li>
+            </th:block>
         </ul>
     </li>
 </th:block>

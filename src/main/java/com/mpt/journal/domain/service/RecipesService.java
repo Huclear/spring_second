@@ -1,32 +1,44 @@
 package com.mpt.journal.domain.service;
 
+import com.mpt.journal.domain.entity.FilterEntity;
+import com.mpt.journal.domain.entity.RecipeEntity;
 import com.mpt.journal.domain.model.PagedResult;
-import com.mpt.journal.domain.model.RecipeModel;
 import com.mpt.journal.domain.model.RecipesIngredientsFiltering;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface RecipesService {
-    PagedResult<RecipeModel> getRecipes(
+    PagedResult<RecipeEntity> getRecipes(
             int page,
             int pageSize,
             String name,
             List<RecipesIngredientsFiltering> ingredients,
+            List<FilterEntity> filters,
             Boolean showDeleted
     );
-    PagedResult<RecipeModel> getRecipesByUser(
+
+    PagedResult<RecipeEntity> getRecipesByUser(
             int page,
             int pageSize,
-            String userID,
+            UUID userID,
             String name,
             List<RecipesIngredientsFiltering> ingredients,
+            List<FilterEntity> filters,
             Boolean showDeleted
     );
-    RecipeModel getRecipeById(String recipeID);
-    RecipeModel addRecipe(RecipeModel recipe);
-    RecipeModel editRecipe(RecipeModel recipe);
-    void deleteRecipe(String recipeID);
-    void deleteRecipes(List<String> recipeIDs);
-    void confirmDeleteRecipe(String recipeID);
-    void confirmDeleteRecipes(List<String> recipeIDs);
+
+    RecipeEntity getRecipeById(UUID recipeID);
+
+    RecipeEntity addRecipe(RecipeEntity recipe);
+
+    RecipeEntity editRecipe(RecipeEntity recipe);
+
+    void deleteRecipe(UUID recipeID);
+
+    void deleteRecipes(List<UUID> recipeIDs);
+
+    void confirmDeleteRecipe(UUID recipeID);
+
+    void confirmDeleteRecipes(List<UUID> recipeIDs);
 }

@@ -1,32 +1,54 @@
 package com.mpt.journal.domain.entity;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import org.hibernate.validator.constraints.UniqueElements;
+
+import java.util.Collection;
 import java.util.UUID;
 
+@Entity(name = "users")
+@Table(uniqueConstraints = @UniqueConstraint(columnNames = { "login", "email_conf_id" }))
 public class UserEntity {
-    private final String id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @NotBlank
+    @Size(min = 10)
     private String login;
+
+    @NotBlank
+    @Size(min = 15)
     private String password;
+
+
     private String salt;
+
+    @NotBlank
+    @Pattern(regexp = "[A-Za-z _]{5,}")
     private String nickname;
+
     private String aboutMe;
+
+    @NotNull
     private Boolean deleted = false;
 
-    public UserEntity(String id, String login, String nickname, String aboutMe, String password, String salt) {
-        this.id = id;
-        this.login = login;
-        this.password = password;
-        this.salt = salt;
-        this.nickname = nickname;
-        this.aboutMe = aboutMe;
+    @OneToOne(mappedBy = "user")
+    private EmailConfirmationEntity emailConf;
 
-    }
+    @OneToMany(mappedBy = "user", fetch = FetchType.EAGER)
+    private Collection<RecipeEntity> recipes;
 
-    public UserEntity(String login, String nickname, String aboutMe, String password, String salt) {
-        this(UUID.randomUUID().toString(), login, nickname, aboutMe, password, salt);
-    }
-
-    public String getId() {
+    public UUID getId() {
         return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public String getLogin() {
@@ -75,5 +97,21 @@ public class UserEntity {
 
     public void setDeleted(Boolean deleted) {
         this.deleted = deleted;
+    }
+
+    public EmailConfirmationEntity getEmailConf() {
+        return emailConf;
+    }
+
+    public void setEmailConf(EmailConfirmationEntity emailConf) {
+        this.emailConf = emailConf;
+    }
+
+    public Collection<RecipeEntity> getRecipes() {
+        return recipes;
+    }
+
+    public void setRecipes(Collection<RecipeEntity> recipes) {
+        this.recipes = recipes;
     }
 }

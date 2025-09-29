@@ -1,4 +1,4 @@
-package com.mpt.journal.domain.entity;
+package com.mpt.journal.domain.model;
 
 public enum Measure {
     Gram("g"),

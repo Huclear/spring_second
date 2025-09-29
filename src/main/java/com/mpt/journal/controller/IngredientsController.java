@@ -1,18 +1,16 @@
 package com.mpt.journal.controller;
 
-import com.mpt.journal.domain.entity.Measure;
-import com.mpt.journal.domain.model.IngredientModel;
-import com.mpt.journal.domain.model.LocalizedName;
-import com.mpt.journal.domain.model.RecipeModel;
+import com.mpt.journal.domain.entity.IngredientEntity;
+import com.mpt.journal.domain.model.Measure;
 import com.mpt.journal.domain.service.IngredientsService;
 import com.mpt.journal.domain.service.RecipesService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @Controller
 public class IngredientsController {
@@ -28,6 +26,15 @@ public class IngredientsController {
         _recipes = recipes;
     }
 
+    @GetMapping("/ingredients/delete/{id}")
+    public String deleteIngredient(
+            Model model,
+            @PathVariable UUID id
+    ) {
+        _ingredients.deleteIngredient(id);
+        return "redirect:/ingredients";
+    }
+
     @GetMapping("/ingredients")
     public String getRecipeIngredients(
             Model model,
@@ -39,7 +46,7 @@ public class IngredientsController {
             @RequestParam(name = "show_deleted", required = false) Boolean showDeleted
     ) {
         var ingredients = recipeID == null ? _ingredients.getIngredientsList(page, pageSize, name, measure, showDeleted) : _ingredients.getIngredientsByRecipe(page, pageSize, recipeID, name, measure, showDeleted);
-        var recipes = _recipes.getRecipes(1, Integer.MAX_VALUE, null, null, false);
+        var recipes = _recipes.getRecipes(1, Integer.MAX_VALUE, null, null, null, false);
 
         model.addAttribute("ingredients", ingredients);
         model.addAttribute("selected_measure", measure);
@@ -47,48 +54,59 @@ public class IngredientsController {
         model.addAttribute("searched_name", name);
         model.addAttribute("selected_recipe", recipeID);
         model.addAttribute("allowed_recipes", recipes);
-        return "ingredients";
+        return "ingredients/ingredients";
     }
+
+    @GetMapping("/ingredients/add")
+    public String addIngredient(
+            Model model
+    ) {
+        var recipes = _recipes.getRecipes(1, Integer.MAX_VALUE, null, null, null, null);
+        model.addAttribute("ingredient_model", new IngredientEntity());
+        model.addAttribute("allowed_recipes", recipes.getValue());
+        model.addAttribute("measures", Measure.values());
+        return "ingredients/createIngredient";
+    }
+
 
     @PostMapping("/ingredients/add")
     public String addIngredient(
-            @RequestParam(name = "recipe_id") String recipeID,
-            @RequestParam(name = "name_eng") String name_en,
-            @RequestParam(name = "name_ru") String name_ru,
-            @RequestParam(name = "amount") Double amount,
-            @RequestParam(name = "measure") Measure measure,
-            RedirectAttributes attributes
+            @ModelAttribute IngredientEntity ingredient,
+            BindingResult bindingResult,
+            Model model
     ) {
 
-        var ingModel = new IngredientModel(recipeID, new LocalizedName(name_ru, name_en), amount, measure);
-        _ingredients.addIngredient(ingModel);
-
-        attributes.addAttribute("recipe_id", recipeID);
+        if (!bindingResult.hasErrors())
+            _ingredients.addIngredient(ingredient);
         return "redirect:/ingredients";
     }
 
 
-    @PostMapping("/ingredients/update")
-    public String editRecipe(
+    @GetMapping("/ingredients/update/{id}")
+    public String editIngredient(
             Model model,
-            @RequestParam(name = "id") String id,
-            @RequestParam(name = "recipe_id") String recipeID,
-            @RequestParam(name = "name_eng") String name_en,
-            @RequestParam(name = "name_ru") String name_ru,
-            @RequestParam(name = "amount") Double amount,
-            @RequestParam(name = "measure") Measure measure
+            @PathVariable UUID id
     ) {
-        IngredientModel editedModel = new IngredientModel(id, recipeID, new LocalizedName(name_ru, name_en), amount, measure);
-        _ingredients.editIngredient(editedModel);
-        return "redirect:/ingredients";
+        var ingredient = _ingredients.getIngredientByID(id);
+        if (ingredient == null)
+            return "redirect:/ingredients";
+
+        var recipes = _recipes.getRecipes(1, Integer.MAX_VALUE, null, null, null, null);
+        model.addAttribute("ingredient_model", ingredient);
+        model.addAttribute("allowed_recipes", recipes.getValue());
+        model.addAttribute("measures", Measure.values());
+        return "ingredients/editIngredient";
     }
 
-    @PostMapping("/ingredients/delete")
-    public String deleteRecipe(
+    @PostMapping("/ingredients/update/{id}")
+    public String editIngredient(
             Model model,
-            @RequestParam(name = "id", required = false) String id
+            @ModelAttribute IngredientEntity ingredient,
+            BindingResult bindingResult
     ) {
-        _ingredients.deleteIngredient(id);
+        if (!bindingResult.hasErrors())
+            _ingredients.editIngredient(ingredient);
+
         return "redirect:/ingredients";
     }
 }

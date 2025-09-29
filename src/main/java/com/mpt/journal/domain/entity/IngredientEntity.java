@@ -1,34 +1,46 @@
 package com.mpt.journal.domain.entity;
 
 import com.mpt.journal.domain.model.LocalizedName;
+import com.mpt.journal.domain.model.Measure;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.UUID;
 
+@Entity(name = "ingredients")
 public class IngredientEntity {
-    private final String id;
-    private final String recipe_ID;
-    private LocalizedName name;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @ManyToOne(optional = false, cascade = CascadeType.ALL)
+    private RecipeEntity recipe;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @NotNull
+    private LocalizedName name = new LocalizedName(null, null);
+
+    @NotNull
+    @Positive
     private Double amount;
+
+    @NotNull
+    @Enumerated(EnumType.STRING)
     private Measure measureType;
+
+    @NotNull
     private Boolean deleted = false;
 
-    public IngredientEntity(String id, String recipe_ID, LocalizedName name, Double amount, Measure measureType) {
-        this.id = id;
-        this.recipe_ID = recipe_ID;
-        this.name = name;
-        this.amount = amount;
-        this.measureType = measureType;
-    }
-    public IngredientEntity(String recipe_ID, LocalizedName name, Double amount, Measure measureType) {
-        this(UUID.randomUUID().toString(), recipe_ID, name, amount, measureType);
-    }
-
-    public String getId() {
+    public UUID getId() {
         return id;
     }
 
-    public String getRecipe_ID() {
-        return recipe_ID;
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public LocalizedName getName() {
@@ -61,5 +73,13 @@ public class IngredientEntity {
 
     public void setDeleted(Boolean deleted) {
         this.deleted = deleted;
+    }
+
+    public RecipeEntity getRecipe() {
+        return recipe;
+    }
+
+    public void setRecipe(RecipeEntity recipe) {
+        this.recipe = recipe;
     }
 }

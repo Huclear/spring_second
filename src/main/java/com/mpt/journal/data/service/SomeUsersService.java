@@ -3,26 +3,24 @@ package com.mpt.journal.data.service;
 import com.mpt.journal.data.Paginator;
 import com.mpt.journal.domain.entity.UserEntity;
 import com.mpt.journal.domain.model.PagedResult;
-import com.mpt.journal.domain.model.UserModel;
 import com.mpt.journal.domain.repository.RecipesRepository;
 import com.mpt.journal.domain.repository.UsersRepository;
 import com.mpt.journal.domain.service.UsersService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class SomeUsersService implements UsersService {
     private final UsersRepository _users;
-    private final RecipesRepository _recipes;
 
-    public SomeUsersService(UsersRepository users, RecipesRepository recipes) {
+    public SomeUsersService(UsersRepository users) {
         this._users = users;
-        this._recipes = recipes;
     }
 
     @Override
-    public PagedResult<UserModel> getUsers(
+    public PagedResult<UserEntity> getUsers(
             int page,
             int pageSize,
             String nickName,
@@ -30,10 +28,10 @@ public class SomeUsersService implements UsersService {
             Integer maxRecipesCount,
             Boolean showDeleted
     ) {
-        var users = _users.getUsers()
+        var users = _users.findAll()
                 .stream()
                 .filter(u -> {
-                            var recipesCount = _recipes.getRecipesByUser(u.getId()).size();
+                            var recipesCount = u.getRecipes().size();
                             return
                                     (minRecipesCount == null || recipesCount >= minRecipesCount)
                                             && (maxRecipesCount == null || recipesCount <= maxRecipesCount)
@@ -42,69 +40,56 @@ public class SomeUsersService implements UsersService {
                         }
                 ).toList();
 
-        return Paginator.paginate(users, page, pageSize)
-                .map(this::getModelFromEntity);
+        return Paginator.paginate(users, page, pageSize);
     }
 
     @Override
-    public UserModel getUserByLogin(String login) {
-        return getModelFromEntity(_users.getUserByLogin(login));
+    public UserEntity getUserByLogin(String login) {
+        return _users.findAll().stream()
+                .filter(u -> u.getLogin().equals(login))
+                .findFirst().orElse(null);
     }
 
     @Override
-    public UserModel getUserById(String userID) {
-        return getModelFromEntity(_users.getUserById(userID));
+    public UserEntity getUserById(UUID userID) {
+        return _users.findById(userID).orElse(null);
     }
 
     @Override
-    public UserModel addUser(UserModel user) {
-        return getModelFromEntity(_users.addUser(convertModelToEntity(user)));
+    public UserEntity addUser(UserEntity user) {
+        return _users.save(user);
     }
 
     @Override
-    public UserModel editUser(UserModel user) {
-        return getModelFromEntity(_users.editUser(convertModelToEntity(user)));
+    public UserEntity editUser(UserEntity user) {
+        return _users.save(user);
     }
 
     @Override
-    public void deleteUser(String userID) {
-        _users.deleteUser(userID);
+    public void deleteUser(UUID userID) {
+        var user = _users.findById(userID).orElse(null);
+        if (user == null)
+            return;
+        if (user.getDeleted())
+            confirmDeleteUser(userID);
+        else {
+            user.setDeleted(true);
+            _users.save(user);
+        }
     }
 
     @Override
-    public void deleteUsers(List<String> userIDs) {
-        _users.deleteUsers(userIDs);
+    public void deleteUsers(List<UUID> userIDs) {
+        userIDs.forEach(this::deleteUser);
     }
 
     @Override
-    public void confirmDeleteUser(String userID) {
-        _users.confirmDeleteUser(userID);
+    public void confirmDeleteUser(UUID userID) {
+        _users.deleteById(userID);
     }
 
     @Override
-    public void confirmDeleteUsers(List<String> userIDs) {
-        _users.confirmDeleteUsers(userIDs);
-    }
-
-    private UserModel getModelFromEntity(UserEntity entity) {
-        return entity == null ? null : new UserModel(
-                entity.getId(),
-                entity.getLogin(),
-                entity.getNickname(),
-                entity.getAboutMe(),
-                entity.getPassword(),
-                entity.getSalt()
-        );
-    }
-
-    private UserEntity convertModelToEntity(UserModel model) {
-        return new UserEntity(
-                model.getId(),
-                model.getLogin(),
-                model.getNickname(),
-                model.getAboutMe(),
-                model.getPassword(),
-                model.getSalt()
-        );
+    public void confirmDeleteUsers(List<UUID> userIDs) {
+        userIDs.forEach(this::confirmDeleteUser);
     }
 }
