@@ -1,30 +1,27 @@
 package com.mpt.journal.domain.model;
 
+import jakarta.persistence.Entity;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class RegistrationModel {
+
+
     @NotBlank
-    @Size(min = 5)
-    @Pattern(regexp = "[ !\"'@#$%^(){}*-_=+<>.,/:;|?~`]*")
-    @Pattern(regexp = "[A-Za-z]+")
-    @Pattern(regexp = "[0-9]*")
+    @Pattern(regexp = "^(?=.*[#?!@$%^&*_+`-])(?=.*[A-Za-z])(?=.*[0-9]).{8,}$")
     private String login;
 
     @NotBlank
-    @Size(min = 5)
-    @Pattern(regexp = "[ !\"'@#$%^(){}*-_=+<>.,/:;|?~`]*")
-    @Pattern(regexp = "[A-Za-z]+")
+    @Pattern(regexp = "^(?=.*[#?!@$%^&*_+`-])(?=.*[A-Za-z]).{5,}$")
     private String nickname;
 
-    @NotBlank
-    @Size(min = 8)
-    @Pattern(regexp = "[ !\"'@#$%^(){}*-_=+<>.,/:;|?~`]+")
-    @Pattern(regexp = "[A-Za-z]+")
-    @Pattern(regexp = "[0-9]+")
+    @Pattern(regexp = "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*_+`-]).{8,}$")
     private String password;
 
+    @NotBlank
+    @NotEmpty
     private String aboutMe;
 
     public String getLogin() {
