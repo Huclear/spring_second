@@ -23,7 +23,7 @@
         </select>
     </label>
     <select name="recipe_id" th:value="${selected_recipe}" required>
-        <option th:each="recipe : ${allowed_recipes.value}"
+        <option th:each="recipe : ${allowed_recipes}"
                 th:value="${recipe.id}"
                 th:text="${recipe.recipe_name} + ' - ' + ${recipe.recipe_description}"></option>
     </select>

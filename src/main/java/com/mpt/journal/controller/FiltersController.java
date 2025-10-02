@@ -4,6 +4,7 @@ import com.mpt.journal.domain.entity.FilterEntity;
 import com.mpt.journal.domain.service.FiltersService;
 import com.mpt.journal.domain.service.RecipesService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -20,6 +21,7 @@ public class FiltersController {
     @Autowired
     private FiltersService filtersService;
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @GetMapping("/filters/delete/{id}")
     public String deleteFilter(
             Model model,
@@ -29,6 +31,7 @@ public class FiltersController {
         return "redirect:/ingredients";
     }
 
+    @PreAuthorize("hasAuthority('USER')")
     @GetMapping("/filters")
     public String getRecipeFilters(
             Model model,
@@ -52,6 +55,7 @@ public class FiltersController {
         return "filters/filters";
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @GetMapping("/filters/add")
     public String addFilter(
             Model model
@@ -63,6 +67,7 @@ public class FiltersController {
     }
 
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/filters/add")
     public String addFilter(
             @ModelAttribute FilterEntity filter,
@@ -75,6 +80,7 @@ public class FiltersController {
     }
 
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @GetMapping("/filters/update/{id}")
     public String editFilter(
             Model model,
@@ -90,6 +96,7 @@ public class FiltersController {
         return "filters/editFilter";
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/filters/update/{id}")
     public String editFilter(
             Model model,

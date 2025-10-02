@@ -4,11 +4,14 @@ import com.mpt.journal.domain.entity.IngredientEntity;
 import com.mpt.journal.domain.model.Measure;
 import com.mpt.journal.domain.service.IngredientsService;
 import com.mpt.journal.domain.service.RecipesService;
+import com.mpt.journal.domain.service.UsersService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.UUID;
 
@@ -21,6 +24,9 @@ public class IngredientsController {
     @Autowired
     private RecipesService _recipes;
 
+    @Autowired
+    private UsersService _users;
+
     public IngredientsController(RecipesService recipes, IngredientsService ingredients) {
         _ingredients = ingredients;
         _recipes = recipes;
@@ -29,8 +35,20 @@ public class IngredientsController {
     @GetMapping("/ingredients/delete/{id}")
     public String deleteIngredient(
             Model model,
-            @PathVariable UUID id
+            @PathVariable UUID id,
+            RedirectAttributes attributes
     ) {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+
+        var ingredient = _ingredients.getIngredientByID(id);
+        if (auth.getAuthorities().stream().noneMatch(r -> r.getAuthority().equals(("ADMIN"))) &&
+                (ingredient == null || ingredient.getRecipe() == null ||
+                        ingredient.getRecipe().getUser() == null ||
+                        !ingredient.getRecipe().getUser().getLogin().equals(auth.getName()))) {
+            attributes.addAttribute("error_message", "Not permitted");
+            return "redirect:/ingredients";
+        }
+
         _ingredients.deleteIngredient(id);
         return "redirect:/ingredients";
     }
@@ -45,8 +63,13 @@ public class IngredientsController {
             @RequestParam(name = "measure", required = false) Measure measure,
             @RequestParam(name = "show_deleted", required = false) Boolean showDeleted
     ) {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        var user = _users.getUserByLogin(auth.getName());
+
         var ingredients = recipeID == null ? _ingredients.getIngredientsList(page, pageSize, name, measure, showDeleted) : _ingredients.getIngredientsByRecipe(page, pageSize, recipeID, name, measure, showDeleted);
-        var recipes = _recipes.getRecipes(1, Integer.MAX_VALUE, null, null, null, false);
+        var recipes = auth.getAuthorities().stream().anyMatch(r -> r.getAuthority().equals("ADMIN"))
+                ? _recipes.getRecipes(1, Integer.MAX_VALUE, null, null, null, false).getValue()
+                : _recipes.getRecipesByUser(1, Integer.MAX_VALUE, user.getId(), null, null, null, null).getValue();
 
         model.addAttribute("ingredients", ingredients);
         model.addAttribute("selected_measure", measure);
@@ -61,9 +84,13 @@ public class IngredientsController {
     public String addIngredient(
             Model model
     ) {
-        var recipes = _recipes.getRecipes(1, Integer.MAX_VALUE, null, null, null, null);
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        var user = _users.getUserByLogin(auth.getName());
+        var recipes = auth.getAuthorities().stream().anyMatch(r -> r.getAuthority().equals("ADMIN"))
+                ? _recipes.getRecipes(1, Integer.MAX_VALUE, null, null, null, false).getValue()
+                : _recipes.getRecipesByUser(1, Integer.MAX_VALUE, user.getId(), null, null, null, null).getValue();
         model.addAttribute("ingredient_model", new IngredientEntity());
-        model.addAttribute("allowed_recipes", recipes.getValue());
+        model.addAttribute("allowed_recipes", recipes);
         model.addAttribute("measures", Measure.values());
         return "ingredients/createIngredient";
     }
@@ -73,11 +100,20 @@ public class IngredientsController {
     public String addIngredient(
             @ModelAttribute IngredientEntity ingredient,
             BindingResult bindingResult,
-            Model model
+            Model model,
+            RedirectAttributes attributes
     ) {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
 
-        if (!bindingResult.hasErrors())
+        if (!bindingResult.hasErrors()) {
+            if (auth.getAuthorities().stream().noneMatch(r -> r.getAuthority().equals("ADMIN")) &&
+                    ingredient.getRecipe().getUser() == null ||
+                    !ingredient.getRecipe().getUser().getLogin().equals(auth.getName())) {
+                attributes.addAttribute("error_message", "Not permitted");
+                return "redirect:/ingredients";
+            }
             _ingredients.addIngredient(ingredient);
+        }
         return "redirect:/ingredients";
     }
 
@@ -85,15 +121,31 @@ public class IngredientsController {
     @GetMapping("/ingredients/update/{id}")
     public String editIngredient(
             Model model,
-            @PathVariable UUID id
+            @PathVariable UUID id,
+            RedirectAttributes attributes
     ) {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+
         var ingredient = _ingredients.getIngredientByID(id);
         if (ingredient == null)
             return "redirect:/ingredients";
+        else if (
+                auth.getAuthorities().stream().noneMatch(r -> r.getAuthority().equals("ADMIN")) &&
+                        ingredient.getRecipe().getUser() == null ||
+                        !ingredient.getRecipe().getUser().getLogin().equals(auth.getName())
+        ) {
+            attributes.addAttribute("error_message", "Not permitted");
+            return "redirect:/ingredients";
+        }
 
-        var recipes = _recipes.getRecipes(1, Integer.MAX_VALUE, null, null, null, null);
+
+        var user = _users.getUserByLogin(auth.getName());
+        var recipes = auth.getAuthorities().stream().anyMatch(r -> r.getAuthority().equals("ADMIN"))
+                ? _recipes.getRecipes(1, Integer.MAX_VALUE, null, null, null, false).getValue()
+                : _recipes.getRecipesByUser(1, Integer.MAX_VALUE, user.getId(), null, null, null, null).getValue();
+
         model.addAttribute("ingredient_model", ingredient);
-        model.addAttribute("allowed_recipes", recipes.getValue());
+        model.addAttribute("allowed_recipes", recipes);
         model.addAttribute("measures", Measure.values());
         return "ingredients/editIngredient";
     }
@@ -102,10 +154,20 @@ public class IngredientsController {
     public String editIngredient(
             Model model,
             @ModelAttribute IngredientEntity ingredient,
-            BindingResult bindingResult
+            BindingResult bindingResult,
+            RedirectAttributes attributes
     ) {
-        if (!bindingResult.hasErrors())
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (!bindingResult.hasErrors()) {
+            if (auth.getAuthorities().stream().noneMatch(r -> r.getAuthority().equals("ADMIN")) &&
+                    ingredient.getRecipe().getUser() == null ||
+                    !ingredient.getRecipe().getUser().getLogin().equals(auth.getName())) {
+                attributes.addAttribute("error_message", "Not permitted");
+                return "redirect:/ingredients";
+            }
             _ingredients.editIngredient(ingredient);
+        }
 
         return "redirect:/ingredients";
     }

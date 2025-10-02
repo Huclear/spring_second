@@ -8,16 +8,14 @@ import com.mpt.journal.domain.service.FiltersService;
 import com.mpt.journal.domain.service.RecipesService;
 import com.mpt.journal.domain.service.UsersService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Controller
 public class RecipesController {
@@ -63,10 +61,14 @@ public class RecipesController {
     public String postRecipe(
             Model model
     ) {
-        var users = usersService.getUsers(1, Integer.MAX_VALUE, null, null, null, null);
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        var users = auth.getAuthorities().stream().anyMatch(r -> r.getAuthority().equals("ADMIN"))
+                ? usersService.getUsers(1, Integer.MAX_VALUE, null, null, null, null).getValue()
+                : Collections.singletonList(usersService.getUserByLogin(auth.getName()));
+
         var filters = filtersService.getFiltersList(1, Integer.MAX_VALUE, null, null);
         model.addAttribute("recipe_model", new RecipeEntity());
-        model.addAttribute("allowedUsers", users.getValue());
+        model.addAttribute("allowedUsers", users);
         model.addAttribute("allowed_filters", filters.getValue());
         return "recipes/createRecipe";
     }
@@ -85,16 +87,25 @@ public class RecipesController {
     @GetMapping("/recipes/edit/{id}")
     public String editRecipe(
             @PathVariable UUID id,
-            Model model
+            Model model,
+            RedirectAttributes attributes
     ) {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+
         var recipe = recipesService.getRecipeById(id);
-        if (recipe == null)
+        if (recipe == null ||
+                auth.getAuthorities().stream().noneMatch(r -> r.getAuthority().equals("ADMIN")) &&
+                        (recipe.getUser() == null || !recipe.getUser().getLogin().equals(auth.getName()))){
+            attributes.addAttribute("error_message", "Not permitted");
             return "redirect:/recipes";
+        }
 
         var allowed_filters = filtersService.getFiltersList(1, Integer.MAX_VALUE, null, null);
-        var users = usersService.getUsers(1, Integer.MAX_VALUE, null, null, null, null);
+        var users = auth.getAuthorities().stream().anyMatch(r -> r.getAuthority().equals("ADMIN"))
+                ? usersService.getUsers(1, Integer.MAX_VALUE, null, null, null, null).getValue()
+                : Collections.singletonList(usersService.getUserByLogin(auth.getName()));
 
-        model.addAttribute("allowedUsers", users.getValue());
+        model.addAttribute("allowedUsers", users);
         model.addAttribute("allowed_filters", allowed_filters.getValue());
         model.addAttribute("recipe_model", recipe);
         return "recipes/editRecipe";
@@ -114,8 +125,18 @@ public class RecipesController {
     @GetMapping("/recipes/delete/{id}")
     public String deleteRecipe(
             Model model,
-            @PathVariable UUID id
+            @PathVariable UUID id,
+            RedirectAttributes attributes
     ) {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        var recipe = recipesService.getRecipeById(id);
+
+        if(auth.getAuthorities().stream().noneMatch(r -> r.getAuthority().equals("ADMIN")) &&
+                (recipe == null || recipe.getUser() == null || !recipe.getUser().getLogin().equals(auth.getName()))){
+            attributes.addAttribute("error_message", "Not permitted");
+            return "redirect:/recipes";
+        }
+
         recipesService.deleteRecipe(id);
         return "redirect:/recipes";
     }
